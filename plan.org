@@ -1,0 +1,81 @@
+#+title: Plan
+
+* What is this thing?
+  on 4 November I had the brilliant idea to create a lisp dialect and named it
+  rock-lisp. This was going to be a simple lisp programming language.
+
+  I decided after looking into LLVM that I didn't want to put the time into
+  learning something new, and would rather spend time honing other skills.
+
+  I will be happy if I can implement the following:
+
+  - S expression evaluation
+  - Special Forms
+  
+* Components
+** Scanner
+   the scanner is responsible for reading a text file and breaking it up into
+   tokens.
+** Parser and AST
+
+* Syntax
+  This programming language should:
+  - be statically typed. (braces indicate typing)
+  - have generics (references are generics)
+  - have namespaces
+
+  #+begin_src rocklisp
+    ;; function definition
+    [ fn {main i32} [ {argc i32} {argv ref<ref<u8>>} ]
+      [ print "hello world\n" ]
+      [ return 0 ]]
+
+    [fn {main i32} [{argc i32} {argv **u8}]
+      [print "hello world\n"]
+      [return 0]]
+
+    ;; expanded form
+    [fn [declare main i32] [[declare argc i32] [declare argv **u8]]
+      [print "hello world"]
+      [return 0]]
+  #+end_src
+
+  how to implement this without a gc? you could just statically analyze it, then
+  compile it into a runnable binary.
+
+  #+begin_src
+    ;; a symbol is a structure that contains its print name and a type
+    ;; when a symbol is used in compiled code, the code will see the symbol as
+    ;; its type
+  #+end_src
+
+** Types
+*** Cons
+    your typical lisp cons cell. a structure consisting of a CAR and a CDR. the
+    CAR contains the value of the CONS cell, while the CDR contains the next
+    element in the list.
+    
+*** Symbol
+    a structure containing a name, and possibly a binding (mem ref).
+
+*** Primitives
+    all types must be declared at compile time.
+
+*** Vector
+    can you have a fundamental type of vector?
+    
+    - vector sizes must be known at compile time (for now)
+    - every time you make a vector, it is added to the stack (or a stack)
+    - vector elements can be any type, (even other vectors?)
+      + the elements would have to be references to other locations in the stack
+        
+    I think that having vectors be the primary data type would be incredibly
+    difficult to implement, and therefore will not be doing this for the time
+    being.
+
+    we will do standard cons cells. 
+    
+*** Structures
+** 
+
+

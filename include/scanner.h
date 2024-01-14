@@ -5,20 +5,25 @@
 
 extern const char g_tokens[];
 
+struct Tokens {
+    const char **tokens;
+    char *buffer;
+    size_t num;
+};
+
 /**
- * Mallocs a buffer in `tokens', and tokenizes `code'. The number of tokens
- * found are recorded in `num_tokens'
+ * Initializes `tokens' and then tokenizes `code', recording the results in
+ * `tokens'
  *
  * @param[in] code a buffer holding code to tokenize
- * @param[out] tokens the tokenized version of `code'
- * @param[out] num_tokens the number of tokens in `tokens'
+ * @param[out] tokens structure for keeping track of tokens in code.
  *
  * @return NULL on success, or an error message.
- * */
-const char* tokenize_buffer(const char *code, char **tokens, size_t *num_tokens);
+ **/
+const char* tokenize_buffer(const char *code, struct Tokens *tokens);
 
 // returns the nth token in a tokenized string.
 // WARNING, this implements an inneficient algorithm.
-const char* nth_token(const char *tokens, size_t n);
+const char* nth_token(struct Tokens tokens, size_t n);
 
 #endif

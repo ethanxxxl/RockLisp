@@ -7,17 +7,19 @@
 const char g_delims[] = "[](){}.'";
 
 const char* tokenize_buffer(const char *code,
-                            char **tokens, size_t *num_tokens) {
+                            struct Tokens *tokens) {
+    char *error = NULL;
     size_t code_len = strlen(code);
 
     // the maximum length needed to tokenize `code' is 2*len(code), ie every
     // character is a token, and needs a \0;
-    *tokens = malloc(code_len * sizeof(char) * 2);
-    if (*tokens == NULL)
+    tokens->buffer = malloc(code_len * sizeof(char) * 2);
+    if (tokens->buffer == NULL)
         return "couldn't allocate space for token buffer";
 
+    size_t *num_tokens = &tokens->num;
     *num_tokens = 0;
-    char *token_pos = *tokens;
+    char *token_pos = tokens->buffer;
     const char *c = code;
     while (*c != '\0') {
         // Skip any leading whitespace
@@ -43,8 +45,10 @@ const char* tokenize_buffer(const char *code,
         // Token is a STRING
         if (*c == '"') {
             const char *tok_end = strchr(c+1, '"') + 1;
-            if (tok_end == NULL)
-                return "unmatched quotation mark";
+            if (tok_end == NULL) {
+                error =  "unmatched quotation mark";
+                goto return_error;
+            }
 
             // add the string to the token list
             memcpy(token_pos, c, tok_end - c);
@@ -69,16 +73,26 @@ const char* tokenize_buffer(const char *code,
         *num_tokens += 1;
     }       
 
-    return NULL;
-}
-
-const char* nth_token(const char *tokens, size_t n) {
-    // XXX consider caching the token locations to make this function faster.
-    
-    const char *token = tokens;
-    for (size_t tok = 0; tok < n; tok++) {
-        token = strchr(token, '\0')+1;
+    // fill out the tokens array.
+    tokens->tokens = malloc(tokens->num * sizeof(char*));
+    if (tokens->tokens == NULL) {
+        error = "couldn't allocate space for token buffer";
+        goto return_error;
     }
 
-    return token;
+    char *tok = tokens->buffer;
+    for (size_t i = 0; i < tokens->num; i++) {
+        tokens->tokens[i] = tok;
+        tok = strchr(tok, '\0')+1;
+    }
+
+    return NULL;
+
+ return_error:
+    free(tokens->tokens);
+    return error;
+}
+
+const char* nth_token(struct Tokens tokens, size_t n) {
+    return tokens.tokens[n];
 }

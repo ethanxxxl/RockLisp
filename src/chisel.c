@@ -142,23 +142,21 @@ int main(int argc, char *argv[]) {
     }
 
     // SCAN & TOKENIZE FILE
-    char *token_buffer = NULL;
-    size_t num_tokens = 0;
+    struct Tokens tokens;
     
     const char *scan_error =
-        tokenize_buffer(file_buffer, &token_buffer, &num_tokens);
+        tokenize_buffer(file_buffer, &tokens);
     
-    if (scan_error != NULL || token_buffer == NULL) {
+    if (scan_error != NULL) {
         printf("SCAN ERROR: %s\n", scan_error);
         goto scan_failed;
     }
 
     if (arguments.print_scanner) {
-        printf("FILE:\n%s\nEND-FILE\n\n", file_buffer);
-        printf("--SCANNER OUTPUT: %zu tokens--\n", num_tokens);
+        printf("--SCANNER OUTPUT: %zu tokens--\n", tokens.num);
 
-        for (size_t t = 0; t < num_tokens; t++) {
-            printf("'%s' ", nth_token(token_buffer, t));
+        for (size_t t = 0; t < tokens.num; t++) {
+            printf("'%s' ", nth_token(tokens, t));
 
             // newline every 15 tokens.
             if ((t+1)%15 == 0)
@@ -168,6 +166,16 @@ int main(int argc, char *argv[]) {
     }
 
     // PARSE TOKENS, GENERATE AST
+    struct Cons *sexp = parse_tokens(tokens);
+
+    if (arguments.print_parser) {
+        printf("\n--PARSER OUTPUT--\n");
+        for (struct Cons *exp = sexp; !is_nil(exp); exp = exp->cdr) {
+            print_car(exp->car);
+            printf("\n");
+        }
+        printf("\n--END PARSER OUTPUT--\n");
+    }
 
     // COMPILE AST
 
@@ -184,13 +192,13 @@ int main(int argc, char *argv[]) {
 
     // EXIT
 
+    free_cons(sexp);
     fclose(ofile);
  output_file_failed:
     // compile_ast_failed:
     // parse_tokens_failed:
-    
-    if (token_buffer != NULL)
-        free(token_buffer);
+    free(tokens.buffer);
+    free(tokens.tokens);
     
  scan_failed:
     free(file_buffer);

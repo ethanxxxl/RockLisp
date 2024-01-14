@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-const char g_tokens[] = "[]{}.\"";
+const char g_delims[] = "[](){}.'";
 
 const char* tokenize_buffer(const char *code,
                             char **tokens, size_t *num_tokens) {
@@ -18,54 +18,56 @@ const char* tokenize_buffer(const char *code,
 
     *num_tokens = 0;
     char *token_pos = *tokens;
-    for (const char *c = code; *c != '\0'; c++) {
-        if (strchr(g_tokens, *c) != NULL) {
-            if (c > code
-                && strchr(g_tokens, *(c-1)) == NULL
-                && !isspace(*(c-1))) {
-                // the last token needed to be finished off
-                *token_pos++ = '\0';
-                (*num_tokens)++;
-            }
-                
-            *token_pos++ = *c;
-            *token_pos++ = '\0';
-            
-            (*num_tokens)++;
-            continue;
+    const char *c = code;
+    while (*c != '\0') {
+        // Skip any leading whitespace
+        while (isspace(*c) || *c == ';') {
+            if (*c == ';')
+                c = strchr(c, '\n');
+            else
+                c++;
+
+            if (c == NULL || *c == '\0')
+                return NULL;
         }
         
-        // whitespace will end the previous token and start a new one.
-        // we skip contiguous blocks of whitespace/comments
-        if (isspace(*c) || *c == ';') {
-            if (*num_tokens > 0 && strchr(g_tokens, *(c-1)) == NULL) {
-                // finish last token/start new one.
-                *token_pos++ = '\0';
-                (*num_tokens)++;
-            } else {
-                // don't create a new token. either:
-                //   - these are leading comments
-                //   - the character before this was a token delimiter
-            }
-
-            do {
-                // skip any additional whitespace.
-                if (*c == ';')
-                    c = strchr(c, '\n');
-                else
-                    c++;
-
-                // if it was a comment, it could be the last line in the file.
-                if (c == NULL)
-                    break;
-
-            } while (isspace(*c) || *c == ';');
-            c--; // c will be incremented next iteration.
+        // Token is a DELIMETER
+        if (strchr(g_delims, *c) != NULL) {
+            *token_pos++ = *c;
+            *token_pos++ = '\0';
+            (*num_tokens)++;
+            c++;
             continue;
         }
 
-        *token_pos++ = *c;
-    }
+        // Token is a STRING
+        if (*c == '"') {
+            const char *tok_end = strchr(c+1, '"') + 1;
+            if (tok_end == NULL)
+                return "unmatched quotation mark";
+
+            // add the string to the token list
+            memcpy(token_pos, c, tok_end - c);
+            token_pos += tok_end - c;
+            *token_pos++ = '\0';
+            (*num_tokens)++;
+            c = tok_end;
+            continue;
+        }
+
+        // Token is a SYMBOL or NUMBER
+        const char *tok_beg = c;
+        while (strchr(g_delims, *c) == NULL
+               && !isspace(*c)
+               && *c != ';'
+               && *c != '"'
+               && *c != '\0') c++;
+
+        memcpy(token_pos, tok_beg, c - tok_beg);
+        token_pos += c - tok_beg;
+        *token_pos++ = '\0';
+        *num_tokens += 1;
+    }       
 
     return NULL;
 }
